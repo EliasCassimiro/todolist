@@ -3,10 +3,12 @@ package br.com.eliascassimiro.todolist.filter;
 import java.io.IOException;
 import java.util.Base64;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-
+import at.favre.lib.crypto.bcrypt.BCrypt;
+import br.com.eliascassimiro.todolist.user.iUserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 
@@ -15,6 +17,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class filterTaskAuth extends OncePerRequestFilter{
+
+    @Autowired
+    private iUserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
@@ -37,15 +42,26 @@ public class filterTaskAuth extends OncePerRequestFilter{
         String username = credentials[0];
         String password = credentials[1];
 
-        System.out.println("Authorization");
+        /*System.out.println("Authorization");
         System.out.println(username);
-        System.out.println(password);
+        System.out.println(password);*/
 
         //VALIDAR USUARIO
-        //VALIDAR SENHA
-        //SEGUE VIAGEM
-        filterChain.doFilter(request, response);
-            
+
+        var user = this.userRepository.findByUserName(username);
+        if(user == null){
+            response.sendError(401);
+        } else {
+            //VALIDAR SENHA
+
+            var passwordVerify = BCrypt.verifyer().verify(password.toCharArray(), user.getPassword());
+            if(passwordVerify.verified){
+                filterChain.doFilter(request, response);
+            } else {
+                response.sendError(401);
+            }
+            //SEGUE VIAGEM
+            //filterChain.doFilter(request, response);
+        } 
     }
-    
 }
